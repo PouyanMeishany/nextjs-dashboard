@@ -1,83 +1,170 @@
-import postgres from 'postgres';
 import {
-  CustomerField,
-  CustomersTableType,
-  InvoiceForm,
-  InvoicesTable,
-  LatestInvoiceRaw,
-  Revenue,
+  Quote,
+  QuotesTable,
+  QuoteForm,
+  LatestQuote,
+  ReviewForm,
+  Reviews,
 } from './definitions';
-import { formatCurrency } from './utils';
+import { sql2 } from '@/app/lib/db';
 
-const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
+// const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
+// const sql2 = postgres(process.env.POSTGRES_URL2!, { ssl: 'require' });
+const ITEMS_PER_PAGE = 6;
 
-export async function fetchRevenue() {
+export async function fetchReviews() {
   try {
-    // Artificially delay a response for demo purposes.
-    // Don't do this in production :)
+    const data = await sql2<Reviews[]>`SELECT * FROM customer_reviews`;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch review data.');
+  }
+}
 
-    // console.log('Fetching revenue data...');
-    // await new Promise((resolve) => setTimeout(resolve, 3000));
+export async function fetchQuotes() {
+  try {
+    const data = await sql2<Quote[]>`
+    SELECT * FROM quote_submissions;
+    `
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch quotes.');
+  }
+}
 
-    const data = await sql<Revenue[]>`SELECT * FROM revenue`;
+export async function fetchFilteredQuotes(query: string,
+  currentPage: number,
+) {
+  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
-    // console.log('Data fetch completed after 3 seconds.');
+  try {
+    const quotes = await sql2<QuotesTable[]>`
+      SELECT
+        quote_submissions.id,
+        quote_submissions.name,
+        quote_submissions.email,
+        quote_submissions.help_with,
+        quote_submissions.pdf_generated,
+        quote_submissions.email_sent,
+        quote_submissions.address,
+        quote_submissions.city,
+        quote_submissions.phone,
+        quote_submissions.status,
+        quote_submissions.created_at
+      FROM quote_submissions
+      WHERE
+        quote_submissions.name ILIKE ${`%${query}%`} OR
+        quote_submissions.email ILIKE ${`%${query}%`} OR
+        quote_submissions.help_with ILIKE ${`%${query}%`} OR
+        quote_submissions.created_at::text ILIKE ${`%${query}%`} OR
+        quote_submissions.status ILIKE ${`%${query}%`}
+      ORDER BY quote_submissions.created_at DESC
+      LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
+    `;
+
+    return quotes;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch quotes.');
+  }
+}
+
+export async function fetchQuotesPages(query: string) {
+  try {
+    const data = await sql2`SELECT COUNT(*)
+    FROM quote_submissions
+    WHERE
+      quote_submissions.name ILIKE ${`%${query}%`} OR
+      quote_submissions.email ILIKE ${`%${query}%`} OR
+      quote_submissions.help_with ILIKE ${`%${query}%`} OR
+      quote_submissions.created_at::text ILIKE ${`%${query}%`} OR
+      quote_submissions.status ILIKE ${`%${query}%`}
+  `;
+
+    const totalPages = Math.ceil(Number(data[0].count) / ITEMS_PER_PAGE);
+    return totalPages;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch total number of quotes.');
+  }
+}
+
+export async function fetchQuotesByMonth() {
+  try {
+    const data = await sql2<{ month: string; count: number }[]>`
+    WITH months AS (
+        SELECT 
+          TO_CHAR(DATE_TRUNC('month', CURRENT_DATE - INTERVAL '11 months') + (n || ' months')::INTERVAL, 'Mon') as month,
+          EXTRACT(MONTH FROM DATE_TRUNC('month', CURRENT_DATE - INTERVAL '11 months') + (n || ' months')::INTERVAL) as month_num
+        FROM generate_series(0, 11) n
+      )
+      SELECT 
+        m.month,
+        COALESCE(COUNT(q.id), 0)::int as count
+      FROM months m
+      LEFT JOIN quote_submissions q 
+        ON TO_CHAR(q.created_at, 'Mon') = m.month
+        AND q.created_at >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '11 months')
+      GROUP BY m.month, m.month_num
+      ORDER BY m.month_num
+    `;
 
     return data;
   } catch (error) {
     console.error('Database Error:', error);
-    throw new Error('Failed to fetch revenue data.');
+    throw new Error('Failed to fetch quotes by month.');
   }
 }
 
-export async function fetchLatestInvoices() {
+export async function fetchLatestQuotes() {
   try {
-    const data = await sql<LatestInvoiceRaw[]>`
-      SELECT invoices.amount, customers.name, customers.image_url, customers.email, invoices.id
-      FROM invoices
-      JOIN customers ON invoices.customer_id = customers.id
-      ORDER BY invoices.date DESC
+    const data = await sql2<LatestQuote[]>`
+      SELECT 
+        quote_submissions.id,
+        quote_submissions.name,
+        quote_submissions.email,
+        quote_submissions.help_with,
+        quote_submissions.status,
+        quote_submissions.created_at
+      FROM quote_submissions
+      ORDER BY quote_submissions.created_at DESC
       LIMIT 5`;
 
-    const latestInvoices = data.map((invoice) => ({
-      ...invoice,
-      amount: formatCurrency(invoice.amount),
-    }));
-    return latestInvoices;
+    return data;
   } catch (error) {
     console.error('Database Error:', error);
-    throw new Error('Failed to fetch the latest invoices.');
+    throw new Error('Failed to fetch the latest quotes.');
   }
 }
+
 
 export async function fetchCardData() {
   try {
     // You can probably combine these into a single SQL query
     // However, we are intentionally splitting them to demonstrate
     // how to initialize multiple queries in parallel with JS.
-    const invoiceCountPromise = sql`SELECT COUNT(*) FROM invoices`;
-    const customerCountPromise = sql`SELECT COUNT(*) FROM customers`;
-    const invoiceStatusPromise = sql`SELECT
-         SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END) AS "paid",
-         SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) AS "pending"
-         FROM invoices`;
+    const QuoteCountPromise = sql2`SELECT COUNT(*) FROM quote_submissions`;
+    const reviewCountPromise = sql2`SELECT COUNT(*) FROM customer_reviews`;
+    const pendingQuotesPromise = sql2`SELECT COUNT(*) FROM quote_submissions WHERE status = 'pending'`;
+    const completedQuotesPromise = sql2`SELECT COUNT(*) FROM quote_submissions WHERE status = 'completed'`;
 
     const data = await Promise.all([
-      invoiceCountPromise,
-      customerCountPromise,
-      invoiceStatusPromise,
+      QuoteCountPromise,
+      reviewCountPromise,
+      pendingQuotesPromise,
+      completedQuotesPromise,
     ]);
 
-    const numberOfInvoices = Number(data[0][0].count ?? '0');
-    const numberOfCustomers = Number(data[1][0].count ?? '0');
-    const totalPaidInvoices = formatCurrency(data[2][0].paid ?? '0');
-    const totalPendingInvoices = formatCurrency(data[2][0].pending ?? '0');
+    const numberOfQuotes = Number(data[0][0].count ?? '0');
+    const numberOfReviews = Number(data[1][0].count ?? '0');
+    const totalPendingQuotes = Number(data[2][0].count ?? '0');
+    const totalCompletedQuotes = Number(data[3][0].count ?? '0');
 
     return {
-      numberOfCustomers,
-      numberOfInvoices,
-      totalPaidInvoices,
-      totalPendingInvoices,
+      numberOfReviews,
+      numberOfQuotes,
+      totalCompletedQuotes,
+      totalPendingQuotes,
     };
   } catch (error) {
     console.error('Database Error:', error);
@@ -85,134 +172,105 @@ export async function fetchCardData() {
   }
 }
 
-const ITEMS_PER_PAGE = 6;
-export async function fetchFilteredInvoices(
-  query: string,
-  currentPage: number,
-) {
-  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
-
+export async function fetchReviewPages(query: string) {
   try {
-    const invoices = await sql<InvoicesTable[]>`
-      SELECT
-        invoices.id,
-        invoices.amount,
-        invoices.date,
-        invoices.status,
-        customers.name,
-        customers.email,
-        customers.image_url
-      FROM invoices
-      JOIN customers ON invoices.customer_id = customers.id
-      WHERE
-        customers.name ILIKE ${`%${query}%`} OR
-        customers.email ILIKE ${`%${query}%`} OR
-        invoices.amount::text ILIKE ${`%${query}%`} OR
-        invoices.date::text ILIKE ${`%${query}%`} OR
-        invoices.status ILIKE ${`%${query}%`}
-      ORDER BY invoices.date DESC
-      LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
-    `;
-
-    return invoices;
-  } catch (error) {
-    console.error('Database Error:', error);
-    throw new Error('Failed to fetch invoices.');
-  }
-}
-
-export async function fetchInvoicesPages(query: string) {
-  try {
-    const data = await sql`SELECT COUNT(*)
-    FROM invoices
-    JOIN customers ON invoices.customer_id = customers.id
+    const data = await sql2`SELECT COUNT(*)
+    FROM customer_reviews
     WHERE
-      customers.name ILIKE ${`%${query}%`} OR
-      customers.email ILIKE ${`%${query}%`} OR
-      invoices.amount::text ILIKE ${`%${query}%`} OR
-      invoices.date::text ILIKE ${`%${query}%`} OR
-      invoices.status ILIKE ${`%${query}%`}
-  `;
+    customer_reviews.name ILIKE ${`%${query}%`} OR
+    customer_reviews.city ILIKE ${`%${query}%`} OR
+    customer_reviews.status ILIKE ${`%${query}%`}`;
 
     const totalPages = Math.ceil(Number(data[0].count) / ITEMS_PER_PAGE);
     return totalPages;
   } catch (error) {
     console.error('Database Error:', error);
-    throw new Error('Failed to fetch total number of invoices.');
+    throw new Error('Failed to fetch total number of reviews.');
   }
 }
 
-export async function fetchInvoiceById(id: string) {
+export async function fetchReviewsById(id: string) {
   try {
-    const data = await sql<InvoiceForm[]>`
-      SELECT
-        invoices.id,
-        invoices.customer_id,
-        invoices.amount,
-        invoices.status
-      FROM invoices
-      WHERE invoices.id = ${id};
+    const data = await sql2<ReviewForm[]>`
+    SELECT
+      customer_reviews.id,
+      customer_reviews.name,
+      customer_reviews.city,
+      customer_reviews.review_text,
+      customer_reviews.status,
+      customer_reviews.rating
+      FROM customer_reviews
+      WHERE customer_reviews.id = ${id};
     `;
-
-    const invoice = data.map((invoice) => ({
-      ...invoice,
-      // Convert amount from cents to dollars
-      amount: invoice.amount / 100,
+    const reviews = data.map((review) => ({
+      ...review,
     }));
-
-    return invoice[0];
+    return reviews[0];
   } catch (error) {
     console.error('Database Error:', error);
-    throw new Error('Failed to fetch invoice.');
+    throw new Error('Failed to fetch review.');
   }
 }
 
-export async function fetchCustomers() {
+export async function fetchQuotesById(id: string) {
   try {
-    const customers = await sql<CustomerField[]>`
-      SELECT
-        id,
-        name
-      FROM customers
-      ORDER BY name ASC
+    const data = await sql2<QuoteForm[]>`
+    SELECT
+        quote_submissions.id,
+        quote_submissions.name,
+        quote_submissions.email,
+        quote_submissions.help_with,
+        quote_submissions.pdf_generated,
+        quote_submissions.email_sent,
+        quote_submissions.address,
+        quote_submissions.city,
+        quote_submissions.phone,
+        quote_submissions.status,
+        quote_submissions.created_at
+      FROM quote_submissions
+      WHERE quote_submissions.id = ${id};
     `;
-
-    return customers;
-  } catch (err) {
-    console.error('Database Error:', err);
-    throw new Error('Failed to fetch all customers.');
+    const quotes = data.map((quote) => ({
+      ...quote,
+    }));
+    return quotes[0];
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch review.');
   }
 }
 
-export async function fetchFilteredCustomers(query: string) {
+export async function fetchFilteredReviews(
+  query: string,
+  currentPage: number,
+) {
+  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
   try {
-    const data = await sql<CustomersTableType[]>`
-		SELECT
-		  customers.id,
-		  customers.name,
-		  customers.email,
-		  customers.image_url,
-		  COUNT(invoices.id) AS total_invoices,
-		  SUM(CASE WHEN invoices.status = 'pending' THEN invoices.amount ELSE 0 END) AS total_pending,
-		  SUM(CASE WHEN invoices.status = 'paid' THEN invoices.amount ELSE 0 END) AS total_paid
-		FROM customers
-		LEFT JOIN invoices ON customers.id = invoices.customer_id
-		WHERE
-		  customers.name ILIKE ${`%${query}%`} OR
-        customers.email ILIKE ${`%${query}%`}
-		GROUP BY customers.id, customers.name, customers.email, customers.image_url
-		ORDER BY customers.name ASC
-	  `;
-
-    const customers = data.map((customer) => ({
-      ...customer,
-      total_pending: formatCurrency(customer.total_pending),
-      total_paid: formatCurrency(customer.total_paid),
+    
+    const data = await sql2<Reviews[]>`
+    SELECT
+      customer_reviews.id,
+      customer_reviews.name,
+      customer_reviews.city,
+      customer_reviews.review_text,
+      customer_reviews.status,
+      customer_reviews.rating
+      FROM customer_reviews
+      WHERE 
+      customer_reviews.name ILIKE ${`%${query}%`} OR
+      customer_reviews.city ILIKE ${`%${query}%`} OR
+      customer_reviews.status ILIKE ${`%s${query}%`}
+      ORDER BY customer_reviews.created_at DESC
+      LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
+      `;
+    const reviews = data.map((review) => ({
+      ...review
     }));
-
-    return customers;
-  } catch (err) {
-    console.error('Database Error:', err);
-    throw new Error('Failed to fetch customer table.');
+    // add WHERE customer_reviews.website_id Like 'kekirenovering' later
+    return reviews;
+  } catch (error) {
+    console.error('Database error:', error);
+    throw new Error('Failed to fetch customer reviews table.');
   }
+
 }

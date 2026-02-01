@@ -163,6 +163,66 @@ export function InvoicesMobileSkeleton() {
   );
 }
 
+export function QuotesChartSkeleton() {
+  return (
+    <div className="w-full md:col-span-4">
+      <div className="mb-4 h-8 w-36 rounded-md bg-gray-100" />
+      <div className="rounded-xl bg-gray-100 p-4">
+        <div className="mt-0 grid h-[410px] grid-cols-12 items-end gap-2 rounded-md bg-white p-4 sm:grid-cols-13 md:gap-4">
+          <div className="mb-6 hidden flex-col justify-between text-sm text-gray-400 sm:flex">
+            <div className="h-4 w-10 rounded-md bg-gray-200" />
+            <div className="h-4 w-10 rounded-md bg-gray-200" />
+            <div className="h-4 w-10 rounded-md bg-gray-200" />
+            <div className="h-4 w-10 rounded-md bg-gray-200" />
+            <div className="h-4 w-10 rounded-md bg-gray-200" />
+          </div>
+          {[...Array(12)].map((_, i) => (
+            <div key={i} className="flex flex-col items-center gap-2">
+              <div className="h-[200px] w-full rounded-md bg-gray-200" />
+              <div className="h-4 w-8 rounded-md bg-gray-200" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ...existing code...
+
+export function LatestQuotesSkeleton() {
+  return (
+    <div className="flex w-full flex-col md:col-span-4">
+      <div className="mb-4 h-8 w-36 rounded-md bg-gray-100" />
+      <div className="flex grow flex-col justify-between rounded-xl bg-gray-50 p-4">
+        <div className="bg-white px-6">
+          {[...Array(5)].map((_, i) => (
+            <div
+              key={i}
+              className="flex flex-row items-center justify-between border-t py-4"
+            >
+              <div className="flex items-center">
+                <div className="min-w-0">
+                  <div className="mb-2 h-5 w-40 rounded-md bg-gray-200" />
+                  <div className="h-4 w-32 rounded-md bg-gray-200" />
+                </div>
+              </div>
+              <div className="flex flex-col items-end">
+                <div className="mb-2 h-5 w-24 rounded-md bg-gray-200" />
+                <div className="h-4 w-16 rounded-md bg-gray-200" />
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center pb-2 pt-6">
+          <div className="h-5 w-5 rounded-full bg-gray-200" />
+          <div className="ml-2 h-4 w-32 rounded-md bg-gray-200" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function InvoicesTableSkeleton() {
   return (
     <div className="mt-6 flow-root">

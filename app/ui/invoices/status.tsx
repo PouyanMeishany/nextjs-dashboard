@@ -1,4 +1,4 @@
-import { CheckIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, CheckIcon, ClockIcon } from '@heroicons/react/24/outline';
 import clsx from 'clsx';
 
 export default function InvoiceStatus({ status }: { status: string }) {
@@ -21,6 +21,66 @@ export default function InvoiceStatus({ status }: { status: string }) {
       {status === 'paid' ? (
         <>
           Paid
+          <CheckIcon className="ml-1 w-4 text-white" />
+        </>
+      ) : null}
+    </span>
+  );
+}
+
+export function ReviewStatus( { status }: { status: string}) {
+  return (
+    <span className={clsx(
+      'inline-flex items.center rounded-full px-2 py-1 text-xs',
+      {
+        'bg-gray-100 text-gray-500': status === 'pending',
+        'bg-red-500 text-white': status === 'declined',
+        'bg-green-500 text-white': status === 'approved',
+      },
+    )}
+    >
+      {status === 'pending' ? (
+        <>
+          Pending
+          <ClockIcon className="ml-1 w-4 text-gray-500"/>
+        </>
+      ) : null}
+      {status === 'declined' ? (
+        <>
+          Declined
+          <XMarkIcon className="ml-1 w-4 text-white"/>
+        </>
+      ): null}
+      {status === 'approved' ? (
+        <>
+          Approved
+          <CheckIcon className="ml-1 w-4 text-white" />
+        </>
+      ): null}
+    </span>
+  )
+}
+
+export function QuotesStatus({ status }: { status: string }) {
+  return (
+    <span
+      className={clsx(
+        'inline-flex items-center rounded-full px-2 py-1 text-xs',
+        {
+          'bg-gray-100 text-gray-500': status === 'pending',
+          'bg-green-500 text-white': status === 'completed',
+        },
+      )}
+    >
+      {status === 'pending' ? (
+        <>
+          Pending
+          <ClockIcon className="ml-1 w-4 text-gray-500" />
+        </>
+      ) : null}
+      {status === 'completed' ? (
+        <>
+          Completed
           <CheckIcon className="ml-1 w-4 text-white" />
         </>
       ) : null}

@@ -1,4 +1,3 @@
-import { Revenue } from './definitions';
 
 export const formatCurrency = (amount: number) => {
   return (amount / 100).toLocaleString('en-US', {
@@ -21,19 +20,21 @@ export const formatDateToLocal = (
   return formatter.format(date);
 };
 
-export const generateYAxis = (revenue: Revenue[]) => {
-  // Calculate what labels we need to display on the y-axis
-  // based on highest record and in 1000s
-  const yAxisLabels = [];
-  const highestRecord = Math.max(...revenue.map((month) => month.revenue));
-  const topLabel = Math.ceil(highestRecord / 1000) * 1000;
+export const generateYAxisForCount = (data: { count: number }[]) => {
+  const maxCount = Math.max(...data.map((item) => item.count));
 
-  for (let i = topLabel; i >= 0; i -= 1000) {
-    yAxisLabels.push(`$${i / 1000}K`);
+  const topLabel = Math.ceil(maxCount / 10) * 10 || 10;
+
+  const step = Math.ceil(topLabel / 5);
+  const yAxisLabels = [];
+
+  for (let i = topLabel; i >= 0; i -= step) {
+    yAxisLabels.push(i.toString());
   }
 
   return { yAxisLabels, topLabel };
 };
+
 
 export const generatePagination = (currentPage: number, totalPages: number) => {
   // If the total number of pages is 7 or less,
