@@ -7,6 +7,8 @@ import { InvoicesTableSkeleton } from '@/app/ui/skeletons';
 import { Suspense } from 'react';
 import { fetchReviewPages, fetchFilteredReviews, fetchReviews } from '@/app/lib/data';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
     title: 'Reviews',
 };

@@ -10,6 +10,8 @@ import {
 import { Metadata } from 'next';
 import LatestQuotes from '@/app/ui/quotes/latest-quotes';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
     title: 'Dashboard',
 };

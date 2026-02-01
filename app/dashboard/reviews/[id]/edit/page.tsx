@@ -4,6 +4,8 @@ import { notFound } from 'next/navigation';
 import { fetchReviewsById } from '@/app/lib/data';
 import { Metadata } from 'next';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'edit',
 }
