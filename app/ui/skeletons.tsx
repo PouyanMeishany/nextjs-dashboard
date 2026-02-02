@@ -264,39 +264,35 @@ export function ReviewTableSkeleton() {
             <div className="inline-block min-w-full align-middle">
               <div className="overflow-hidden rounded-md bg-gray-50 p-2 md:pt-0">
                 <div className="wide:hidden">
-                    <div                      
-                      className="mb-2 w-full rounded-md bg-white p-4"
-                    >
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="mb-2 w-full rounded-md bg-white p-4">
                       <div className="flex items-center justify-between border-b pb-4">
                         <div>
                           <div className="mb-2 flex items-center">
                             <div className="flex items-center gap-3">
-                            Name
+                              <div className="h-6 w-24 rounded bg-gray-100"></div>
                             </div>
                           </div>
-                          <p className="text-sm text-gray-500">
-                          City
-                          </p>
+                          <div className="h-5 w-20 rounded bg-gray-100"></div>
                         </div>
                       </div>
                       <div className="flex w-full items-center justify-between border-b py-5">
                         <div className="flex w-1/2 flex-col">
-                          <p className="font-medium">Comment</p>
+                          <div className="h-6 w-full rounded bg-gray-100"></div>
                         </div>
-                        <div className="flex w-1/2 items-center flex-col">
-                          <p className="text-xs">Rating</p>
-                          <p className="font-medium">Rating</p>
+                        <div className="flex w-1/2 items-center flex-col gap-2">
+                          <div className="h-4 w-16 rounded bg-gray-100"></div>
+                          <div className="h-6 w-12 rounded bg-gray-100"></div>
                         </div>
                       </div>
                       <div className='flex w-full items-center justify-between border-b py-5'>
-                        <div className="text-xl font-medium">
-                          Status
-                        </div>
+                        <div className="h-6 w-20 rounded bg-gray-100"></div>
                         <div className='flex justify-end gap-2'>
-                          Update
+                          <div className="h-[38px] w-[38px] rounded bg-gray-100"></div>
                         </div>
                       </div>
                     </div>
+                  ))}
                 </div>
                 <table className="hidden min-w-full rounded-md text-gray-900 wide:table">
                   <thead className="rounded-md bg-gray-50 text-left text-sm font-normal">
