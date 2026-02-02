@@ -246,13 +246,13 @@ export function InvoicesTableSkeleton() {
                   Email
                 </th>
                 <th scope="col" className="px-3 py-5 font-medium">
-                  Amount
+                  City
+                </th>
+                <th scope="col" className="px-3 py-5 font-medium">
+                  Comment
                 </th>
                 <th scope="col" className="px-3 py-5 font-medium">
                   Date
-                </th>
-                <th scope="col" className="px-3 py-5 font-medium">
-                  Status
                 </th>
                 <th
                   scope="col"
